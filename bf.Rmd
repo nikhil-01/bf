@@ -1,0 +1,90 @@
+---
+title: "Body Fat Tracker"
+author: "Nik"
+date: "5/24/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+  library(ggplot2)
+  library(plotly)
+  library(lubridate)
+  library(gridExtra)
+  
+  targetFat <- 0.12
+  bodyFat <- 0.174
+  weights <- c(193.6, 193.2, 189, 192.4, 192.2, 189.8, 188, 187.8, 189, 189.4, 191.6, 190.8, 190, 188.6,
+               191, 188.8, 187.6, 190.2, 188, 185.4, 184, 185, 187, 186.4, 187.4, 187.8, 188.2, 186.4, 185.6,
+               186.4, 185, 185.6, 185, 184.4, 184.6, 185, 185.4)
+  dates <- seq(from=as.Date("2018-04-19"), by="1 day", length.out = length(weights))
+  day <- lubridate::wday(dates)
+  
+  BodyFatPct <- function(wgt) {
+    lastWgt <- tail(weights,1)
+    fat <- lastWgt * bodyFat
+    muscle <- lastWgt - fat
+    pmax(0, (wgt-muscle)/wgt)
+  }
+
+  HowMuchToLose <- function(goalFatPct, startWgt, startFatPct) {
+    startFat = startWgt * startFatPct
+    nonFatStart = startWgt - startFat
+    goalWeight = nonFatStart/(1-goalFatPct)
+    max(0, startWgt - goalWeight)
+  }
+  
+  FinishLine <- function(goalFat, startWgt, startFat, deltaPerWeek=-1.5) {
+    howMuch = HowMuchToLose(goalFat, startWgt, startFat)
+    Sys.Date() - 7/deltaPerWeek * howMuch
+  }
+
+  init <- head(weights,1)
+  now <- tail(weights,1)
+  possibleWgts <- sort(c(160:195, now))
+  lab <- factor(ifelse(possibleWgts==now, "current", "path"))
+  pcts <- BodyFatPct(possibleWgts)
+  dpcts <- c(NA, diff(pcts)/diff(possibleWgts))
+
+  s <- summary(lm(weights ~ seq_along(weights)))
+  #print(s)
+  ratePerWeek <- coef(s)[2,"Estimate"] * 7
+  
+  howMuch <- HowMuchToLose(targetFat, tail(weights,1), bodyFat)
+  doneDate <- FinishLine(targetFat, tail(weights,1), bodyFat, ratePerWeek)
+
+  pp <- function(x) sprintf("%0.2f%%", 100*x)
+  pf <- function(x) sprintf("%0.1f", x)
+```
+
+## Fat Loss Summary
+ - You are at `r pf(now) `lbs (`r pp(bodyFat) ` fat).  
+ - You have lost `r pf(init-now) `lbs.
+ - You are losing `r pf(-ratePerWeek) ` pounds per week.
+ - You have `r pf(howMuch)`lbs left to lose, with a target date of `r as.character(doneDate)`.
+ - This will be over in `r pf(as.numeric(doneDate - Sys.Date()))` days.
+
+## Plots
+
+```{r actFat, echo=FALSE}
+  plt.wgt <- ggplot(mapping=aes(x=dates, y=weights)) + geom_point() + expand_limits(y=c(180, 195)) + 
+    ggtitle("Weight over Time") + stat_smooth(method="lm")
+  print(plt.wgt)
+
+  plt.actfat <- ggplot(mapping=aes(x=dates, y=BodyFatPct(weights))) + 
+    xlab("Date") + ylab("Body Fat %") +
+    ggtitle("Fat Pct Over Time") + scale_y_continuous(labels=function(x) sprintf("%0.1f%%", 100*x)) + 
+    geom_point() + geom_smooth(method="lm")
+  print(plt.actfat)
+
+  plt.fat <- ggplot(mapping=aes(x=possibleWgts, y=pcts, color=lab)) + 
+    xlab("Weight") + ylab("Body Fat %") +
+    ggtitle("Fat Pct by Weight") + scale_y_continuous(labels=function(x) sprintf("%0.1f%%", 100*x)) + geom_point()
+  print(plt.fat)
+  
+  plt.dfat <- ggplot(mapping=aes(x=possibleWgts, y=dpcts, color=lab)) + xlab("Weight") + ylab("Delta Body Fat %") +
+    ggtitle("Delta Fat Pct by Weight") + scale_y_continuous(labels=function(x) sprintf("%0.2f%%", 100*x)) +
+    geom_point()
+  suppressWarnings(print(plt.dfat))
+
+```
