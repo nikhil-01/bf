@@ -11,12 +11,13 @@ knitr::opts_chunk$set(echo = TRUE)
   library(plotly)
   library(lubridate)
   library(gridExtra)
-  
+  library(functional)
+
   targetFat <- 0.12
-  bodyFat <- 0.174
+  bodyFat <- 0.16
   weights <- c(193.6, 193.2, 189, 192.4, 192.2, 189.8, 188, 187.8, 189, 189.4, 191.6, 190.8, 190, 188.6,
                191, 188.8, 187.6, 190.2, 188, 185.4, 184, 185, 187, 186.4, 187.4, 187.8, 188.2, 186.4, 185.6,
-               186.4, 185, 185.6, 185, 184.4, 184.6, 185, 185.4)
+               186.4, 185, 185.6, 185, 184.4, 184.6, 185, 185.4, NA, 182.4)
   dates <- seq(from=as.Date("2018-04-19"), by="1 day", length.out = length(weights))
   day <- lubridate::wday(dates)
   
@@ -53,7 +54,7 @@ knitr::opts_chunk$set(echo = TRUE)
   howMuch <- HowMuchToLose(targetFat, tail(weights,1), bodyFat)
   doneDate <- FinishLine(targetFat, tail(weights,1), bodyFat, ratePerWeek)
 
-  pp <- function(x) sprintf("%0.2f%%", 100*x)
+  pp <- function(x) sprintf("%0.1f%%", 100*x)
   pf <- function(x) sprintf("%0.1f", x)
 ```
 
@@ -67,20 +68,21 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Plots
 
 ```{r actFat, echo=FALSE}
-  plt.wgt <- ggplot(mapping=aes(x=dates, y=weights)) + geom_point() + expand_limits(y=c(180, 195)) + 
-    ggtitle("Weight over Time") + stat_smooth(method="lm")
-  print(plt.wgt)
+  plt.wgt <- ggplot(mapping=aes(x=dates, y=weights)) + geom_point() + 
+  expand_limits(y=c(180, 195)) + ggtitle("Weight over Time") +
+                                stat_smooth(method="lm")
+  suppressWarnings(print(plt.wgt))
 
-  plt.actfat <- ggplot(mapping=aes(x=dates, y=BodyFatPct(weights))) + 
+  plt.actfat <- suppressWarnings(ggplot(mapping=aes(x=dates, y=BodyFatPct(weights))) + 
     xlab("Date") + ylab("Body Fat %") +
     ggtitle("Fat Pct Over Time") + scale_y_continuous(labels=function(x) sprintf("%0.1f%%", 100*x)) + 
-    geom_point() + geom_smooth(method="lm")
-  print(plt.actfat)
+    geom_point() + geom_smooth(method="lm"))
+  suppressWarnings(print(plt.actfat))
 
   plt.fat <- ggplot(mapping=aes(x=possibleWgts, y=pcts, color=lab)) + 
     xlab("Weight") + ylab("Body Fat %") +
     ggtitle("Fat Pct by Weight") + scale_y_continuous(labels=function(x) sprintf("%0.1f%%", 100*x)) + geom_point()
-  print(plt.fat)
+  suppressWarnings(print(plt.fat))
   
   plt.dfat <- ggplot(mapping=aes(x=possibleWgts, y=dpcts, color=lab)) + xlab("Weight") + ylab("Delta Body Fat %") +
     ggtitle("Delta Fat Pct by Weight") + scale_y_continuous(labels=function(x) sprintf("%0.2f%%", 100*x)) +
