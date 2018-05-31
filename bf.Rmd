@@ -14,10 +14,10 @@ knitr::opts_chunk$set(echo = TRUE)
   library(functional)
 
   targetFat <- 0.12
-  bodyFat <- 0.16
+  bodyFat <- 0.174
   weights <- c(193.6, 193.2, 189, 192.4, 192.2, 189.8, 188, 187.8, 189, 189.4, 191.6, 190.8, 190, 188.6,
                191, 188.8, 187.6, 190.2, 188, 185.4, 184, 185, 187, 186.4, 187.4, 187.8, 188.2, 186.4, 185.6,
-               186.4, 185, 185.6, 185, 184.4, 184.6, 185, 185.4, NA, 182.4, 184.4, 184.2)
+               186.4, 185, 185.6, 185, 184.4, 184.6, 185, 185.4, NA, 182.4, 184.4, 184.2, 182.8)
   dates <- seq(from=as.Date("2018-04-19"), by="1 day", length.out = length(weights))
   day <- lubridate::wday(dates)
   
@@ -62,8 +62,8 @@ knitr::opts_chunk$set(echo = TRUE)
  - You are at `r pf(now) `lbs (`r pp(bodyFat) ` fat).  
  - You have lost `r pf(init-now) `lbs.
  - You are losing `r pf(-ratePerWeek) ` pounds per week.
- - You have `r pf(howMuch)`lbs left to lose, with a target date of `r as.character(doneDate)`.
- - This will be over in `r pf(as.numeric(doneDate - Sys.Date()))` days.
+ - You end weight target is `r pf(now-howMuch)`lbs. You have `r pf(howMuch)`lbs left to lose.
+ - Estimated completion date is `r as.character(doneDate)`. (`r pf(as.numeric(doneDate - Sys.Date()))` days).
 
 ## Plots
 
