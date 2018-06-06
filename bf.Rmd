@@ -1,6 +1,6 @@
 ---
 title: "Body Fat Tracker"
-author: "Nik"
+author: "Some Fat Guy"
 date: "5/24/2018"
 output: html_document
 ---
@@ -13,17 +13,18 @@ knitr::opts_chunk$set(echo = TRUE)
   library(gridExtra)
   library(functional)
 
+  data <- setDT(read.csv("data.csv"))
+  data$bodyFatPct <- data$bodyFatPct / 100.0
+  attach(data)
+
   targetFat <- 0.12
-  bodyFat <- 0.169
-  weights <- c(193.6, 193.2, 189, 192.4, 192.2, 189.8, 188, 187.8, 189, 189.4, 191.6, 190.8, 190, 188.6,
-               191, 188.8, 187.6, 190.2, 188, 185.4, 184, 185, 187, 186.4, 187.4, 187.8, 188.2, 186.4, 185.6,
-               186.4, 185, 185.6, 185, 184.4, 184.6, 185, 185.4, NA, 182.4, 184.4, 184.2, 182.8, 182.8)
-  dates <- seq(from=as.Date("2018-04-19"), by="1 day", length.out = length(weights))
-  day <- lubridate::wday(dates)
-  
+  firstWgt <- head(na.omit(weightLbs),1)
+  lastWgt <- tail(na.omit(weightLbs),1)
+  lastFat <- tail(na.omit(bodyFatPct),1)
+  possibleWgts <- sort(c(160:195, lastWgt))
+
   BodyFatPct <- function(wgt) {
-    lastWgt <- tail(weights,1)
-    fat <- lastWgt * bodyFat
+    fat <- lastWgt * lastFat
     muscle <- lastWgt - fat
     pmax(0, (wgt-muscle)/wgt)
   }
@@ -40,55 +41,54 @@ knitr::opts_chunk$set(echo = TRUE)
     Sys.Date() - 7/deltaPerWeek * howMuch
   }
 
-  init <- head(weights,1)
-  now <- tail(weights,1)
-  possibleWgts <- sort(c(160:195, now))
-  lab <- factor(ifelse(possibleWgts==now, "current", "path"))
   pcts <- BodyFatPct(possibleWgts)
   dpcts <- c(NA, diff(pcts)/diff(possibleWgts))
 
-  idx <- seq_along(weights)
-  w <- exp(-rev(idx-1)/21)
-  s <- summary(lm(weights ~ idx, weights=w))
-  #print(s)
+  idx <- 1:nrow(data)
+  w <- rep(1,length(idx)) #exp(-rev(idx-1)/21)
+  s <- summary(lm(weightLbs ~ idx, data=data, weights=w))
   ratePerWeek <- coef(s)[2,"Estimate"] * 7
   
-  howMuch <- HowMuchToLose(targetFat, tail(weights,1), bodyFat)
-  doneDate <- FinishLine(targetFat, tail(weights,1), bodyFat, ratePerWeek)
+  howMuch <- HowMuchToLose(targetFat, lastWgt, lastFat)
+  doneDate <- FinishLine(targetFat, lastWgt, lastFat, ratePerWeek)
 
   pp <- function(x) sprintf("%0.1f%%", 100*x)
   pf <- function(x) sprintf("%0.1f", x)
 ```
 
 ## Fat Loss Summary
- - You are at `r pf(now) `lbs (`r pp(bodyFat) ` fat).  
- - You have lost `r pf(init-now) `lbs.
+ - You are at `r pf(lastWgt) `lbs (`r pp(lastFat) ` fat).  
+ - You have lost `r pf(firstWgt-lastWgt) `lbs over `r diff(ymd(range(date)))` days.
  - You are losing `r pf(-ratePerWeek) ` pounds per week.
- - You end weight target is `r pf(now-howMuch)`lbs. You have `r pf(howMuch)`lbs left to lose.
+ - You end weight target to hit `r pp(targetFat)` body fat needs to be `r pf(lastWgt-howMuch)`lbs. You have `r pf(howMuch)`lbs left to lose.
  - Estimated completion date is `r as.character(doneDate)`. (`r pf(as.numeric(doneDate - Sys.Date()))` days).
 
 ## Plots
 
 ```{r actFat, echo=FALSE}
-  plt.wgt <- ggplot(mapping=aes(x=dates, y=weights)) + geom_point() + 
-  expand_limits(y=c(180, 195)) + ggtitle("Weight over Time") +
-                                stat_smooth(method="lm")
-  suppressWarnings(print(plt.wgt))
-
-  plt.actfat <- suppressWarnings(ggplot(mapping=aes(x=dates, y=BodyFatPct(weights))) + 
+  plt.wgt <- ggplot(mapping=aes(x=ymd(date))) + 
+    geom_point(aes(y=weightLbs)) + 
+    expand_limits(y=c(180, 195)) + 
+    ggtitle("Weight over Time") + xlab("Date") + 
+    stat_smooth(aes(y=weightLbs), method="lm")
+  
+  plt.actEstFat <- ggplot(mapping=aes(x=ymd(date))) + 
+    geom_point(aes(y=BodyFatPct(weightLbs), color="estimated")) + 
+    geom_point(aes(y=bodyFatPct, color="measured")) +
+    geom_smooth(aes(y=BodyFatPct(weightLbs), color="estimated"), method="lm") + 
     xlab("Date") + ylab("Body Fat %") +
-    ggtitle("Fat Pct Over Time") + scale_y_continuous(labels=function(x) sprintf("%0.1f%%", 100*x)) + 
-    geom_point() + geom_smooth(method="lm"))
-  suppressWarnings(print(plt.actfat))
+    ggtitle("Fat Pct Over Time") + scale_y_continuous(labels=pp)
 
-  plt.fat <- ggplot(mapping=aes(x=possibleWgts, y=pcts, color=lab)) + 
+  lab <- factor(ifelse(possibleWgts==lastWgt, "current", "path"))
+  plt.fatWgt <- ggplot(mapping=aes(x=possibleWgts, y=pcts, color=lab)) + 
     xlab("Weight") + ylab("Body Fat %") +
-    ggtitle("Fat Pct by Weight") + scale_y_continuous(labels=function(x) sprintf("%0.1f%%", 100*x)) + geom_point()
-  suppressWarnings(print(plt.fat))
+    ggtitle("Estimated Fat Pct by Weight") + scale_y_continuous(labels=function(x) sprintf("%0.1f%%", 100*x)) + geom_point()
   
   plt.dfat <- ggplot(mapping=aes(x=possibleWgts, y=dpcts, color=lab)) + xlab("Weight") + ylab("Delta Body Fat %") +
-    ggtitle("Delta Fat Pct by Weight") + scale_y_continuous(labels=function(x) sprintf("%0.2f%%", 100*x)) +
+    ggtitle("Body Fat % Change Per Pound Dropped") + scale_y_continuous(labels=function(x) sprintf("%0.2f%%", 100*x)) +
     geom_point()
-  suppressWarnings(print(plt.dfat))
+  
+  for (p in list(plt.wgt, plt.actEstFat, plt.fatWgt, plt.dfat))
+    suppressWarnings(print(p))
 
 ```
