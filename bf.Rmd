@@ -12,8 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
   library(lubridate)
   library(gridExtra)
   library(functional)
+  library(MASS)
 
-  data <- setDT(read.csv("data.csv"))
+  data <- fread("data.csv")
   data$bodyFatPct <- data$bodyFatPct / 100.0
   attach(data)
 
@@ -46,8 +47,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
   idx <- 1:nrow(data)
   w <- rep(1,length(idx)) #exp(-rev(idx-1)/21)
-  s <- summary(lm(weightLbs ~ idx, data=data, weights=w))
-  ratePerWeek <- coef(s)[2,"Estimate"] * 7
+  s <- summary(rlm(weightLbs ~ idx, data=data, weights=w))
+  ratePerWeek <- coef(s)[2,1] * 7
   
   howMuch <- HowMuchToLose(targetFat, lastWgt, lastFat)
   doneDate <- FinishLine(targetFat, lastWgt, lastFat, ratePerWeek)
