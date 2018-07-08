@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
   data$bodyFatPct <- data$bodyFatPct / 100.0
   attach(data)
 
-  targetFat <- 0.12
+  targetFat <- 0.10
   firstWgt <- head(na.omit(weightLbs),1)
   lastWgt <- tail(na.omit(weightLbs),1)
   lastFat <- tail(na.omit(bodyFatPct),1)
