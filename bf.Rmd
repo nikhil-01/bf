@@ -46,8 +46,8 @@ knitr::opts_chunk$set(echo = TRUE)
   dpcts <- c(NA, diff(pcts)/diff(possibleWgts))
 
   idx <- 1:nrow(data)
-  w <- rep(1,length(idx)) #exp(-rev(idx-1)/21)
-  s <- summary(rlm(weightLbs ~ idx, data=data, weights=w))
+  w <- c(1000, rep(1,length(idx)-1)) #exp(-rev(idx-1)/21)
+  s <- summary(lm(weightLbs ~ idx, data=data, weights=w))
   ratePerWeek <- coef(s)[2,1] * 7
   
   howMuch <- HowMuchToLose(targetFat, lastWgt, lastFat)
@@ -71,8 +71,8 @@ knitr::opts_chunk$set(echo = TRUE)
     geom_point(aes(y=weightLbs)) + 
     expand_limits(y=c(180, 195)) + 
     ggtitle("Weight over Time") + xlab("Date") + 
-    stat_smooth(aes(y=weightLbs), method="lm")
-  
+    stat_smooth(aes(y=weightLbs), method="loess")
+                
   plt.actEstFat <- ggplot(mapping=aes(x=ymd(date))) + 
     geom_point(aes(y=BodyFatPct(weightLbs), color="estimated")) + 
     geom_point(aes(y=bodyFatPct, color="measured")) +
