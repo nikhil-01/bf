@@ -1,6 +1,6 @@
 ---
 title: "Body Fat Tracker"
-author: "Some Fat Guy"
+author: "N.S."
 date: "5/24/2018"
 output: html_document
 ---
@@ -76,7 +76,8 @@ knitr::opts_chunk$set(echo = TRUE)
   plt.actEstFat <- ggplot(mapping=aes(x=ymd(date))) + 
     geom_point(aes(y=BodyFatPct(weightLbs), color="estimated")) + 
     geom_point(aes(y=bodyFatPct, color="measured")) +
-    geom_smooth(aes(y=BodyFatPct(weightLbs), color="estimated"), method="lm") + 
+    #geom_smooth(aes(y=BodyFatPct(weightLbs), color="estimated"), method="lm") + 
+    geom_smooth(aes(y=bodyFatPct, color="measured"), method="lm") + 
     xlab("Date") + ylab("Body Fat %") +
     ggtitle("Fat Pct Over Time") + scale_y_continuous(labels=pp)
 
