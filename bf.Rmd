@@ -65,6 +65,7 @@ knitr::opts_chunk$set(echo = TRUE)
  - Estimated completion date is `r as.character(doneDate)`. (`r pf(as.numeric(doneDate - Sys.Date()))` days).
 
 ## Plots
+Estimated body fats use your latest measurement of body fat percentage to back out lean mass, and assume that has held constant historically.  We then back out the body fat you would have had, based on historical weight.
 
 ```{r actFat, echo=FALSE}
   plt.wgt <- ggplot(mapping=aes(x=ymd(date))) + 
